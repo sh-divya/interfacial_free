@@ -1,0 +1,46 @@
+job_str = """
+&CONTROL
+  calculation = 'relax'
+  etot_conv_thr =   2.7000000000d-04
+  forc_conv_thr =   1.0000000000d-04
+  max_seconds = $TIME$
+  restart_mode = 'from_scratch'
+  outdir = './out/'
+  prefix = '$NAME$'
+  pseudo_dir = '/scratch16/pclancy3/divya/interfacial_free/force_fields/pseudo'
+  tprnfor = .true.
+  tstress = .true.
+  verbosity = 'high'
+/
+&SYSTEM
+  ibrav = 0
+  degauss =   2.2049585400d-02
+  ecutrho =   4.0000000000d+02
+  ecutwfc =   5.0000000000d+01
+  nat = $NUM$
+  nosym = .true.
+  nspin = 1
+  ntyp = $TYPE$
+  occupations = 'smearing'
+  smearing = 'cold'
+/
+&ELECTRONS
+  conv_thr =   4.0000000000d-10
+  electron_maxstep = 200
+  mixing_beta =   4.0000000000d-01
+  mixing_mode = 'local-TF'
+/
+&IONS
+  ion_positions = 'default'
+  ion_dynamics = 'bfgs'
+/
+ATOMIC_SPECIES
+$PSEUDO$
+ATOMIC_POSITIONS angstrom
+$POSITIONS$
+K_POINTS automatic
+4 2 2 0 0 0
+CELL_PARAMETERS angstrom
+$BOX$
+"""
+

@@ -1,0 +1,5 @@
+job_name: interface_smd
+sim: smd
+xyz: interface_rel_metal.xyz
+system_bounds: [[-41.4273, -8.51501, -6.02102], [23.5150, 8.51501, 6.02102]]
+overlap: false

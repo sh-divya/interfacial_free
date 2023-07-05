@@ -1,0 +1,5 @@
+job_name: smaller_interface_rel
+sim: md
+xyz: criniti_interface.xyz
+system_bounds: [[-8.9863, 0.0, 0.0], [6.35681, 14.8326, 10.4882]]
+overlap: false

@@ -1,0 +1,33 @@
+job_str: |-
+units metal
+boundary p p p
+atom_style atomic
+
+read_data $DATA$
+
+pair_style meam
+pair_coeff * * $FILE1$ Ni Ti Cr $FILE2$ Ni Ti Cr
+
+neighbor 2.0 bin
+neigh_modify delay 10 check yes
+
+group niti type 1 2
+group cr type 3
+
+dump 1 all xyz 10000 $NAME$.xyz
+dump_modify 1 element Ni Ti Cr
+
+variable lambda equal ramp(1.0,0.1)
+fix lam all adapt 10000000 pair meam scale 1 3 v_lambda 
+fix lam all adapt 10000000 pair meam scale 2 3 v_lambda 
+
+
+thermo 50
+thermo_style custom step etotal enthalpy pe temp
+
+timestep 0.00001
+
+fix eq all nvt temp 300.0 300.0 100.0
+run 200000000
+
+write_restart lmda.restart

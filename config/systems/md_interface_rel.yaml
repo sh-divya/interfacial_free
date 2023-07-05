@@ -1,0 +1,5 @@
+job_name: interface_rel_metal
+sim: md
+xyz: interface.xyz
+system_bounds: [[-31.4273, -8.51501, -6.02102], [13.51501, 8.51501, 6.02102]]
+overlap: true
