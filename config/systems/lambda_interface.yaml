@@ -1,5 +1,8 @@
 job_name: interface_lmabda_ti
 sim: ti
+elems: Ni Ti Cr
 xyz: interface_smd_frames.xyz
 system_bounds: [[-31.4273, -8.51501, -6.02102], [13.51501, 8.51501, 6.02102]]
+ff: ["lib.niticr.meam", "niticr.meam"]
 overlap: false
+output: ["Step", "TotEng", "PotEng", "Temp"]

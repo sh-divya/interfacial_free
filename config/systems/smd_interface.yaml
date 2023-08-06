@@ -1,5 +1,8 @@
 job_name: interface_smd
 sim: smd
+elems: Ni Ti Cr
 xyz: interface_rel_metal.xyz
 system_bounds: [[-41.4273, -8.51501, -6.02102], [23.5150, 8.51501, 6.02102]]
 overlap: false
+ff: ["lib.niticr.meam", "niticr.meam"]
+output: ["PotEng", "Temp", "f_push[6]", "f_push[7]"]

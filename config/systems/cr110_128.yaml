@@ -1,0 +1,8 @@
+job_name: cr110_surface
+sim: single
+elems: Co Ni Cr Fe Mn
+xyz: Cr_110_128atoms.xyz
+system_bounds: [[1.699329, -8.397315, -5.937799], [23.397315, 4.198658, 5.937799]]
+overlap: true
+ff: ["lib_cr.meam", "CoNiCrFeMn.meam"]
+output: ["Step", "TotEng", "PotEng", "Temp"]

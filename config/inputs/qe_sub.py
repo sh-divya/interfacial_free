@@ -1,5 +1,6 @@
 slurm_str = """
 date
+source /data/apps/go.sh
 module load intel/2020.2
 module load intel-mpi/2020.2
 module load quantum-espresso/6.6

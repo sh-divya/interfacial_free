@@ -10,6 +10,8 @@ data_path = BASE_PATH / "data"
 ff_path = BASE_PATH / "force_fields"
 config_path = BASE_PATH / "config"
 
+PREBASH = "ml cl-lammps\nsource /data/apps/go.sh\n"
+
 
 def dump_atoms_data(system, boundary=True):
     """
@@ -27,28 +29,33 @@ def dump_atoms_data(system, boundary=True):
     max_y = max([a.y for a in system.atoms])
     max_z = max([a.z for a in system.atoms])
     atoms_idx = []
+    atom_subset = []
     if boundary:
+        count = 0
         for i, a in enumerate(system.atoms):
             # if a.x < max_x:
             #     if a.x > min_x:
             if a.y < max_y:
                 if a.z < max_z:
                     atoms_idx.append(i)
+                    a.index = count
+                    atom_subset.append(a)
+                    count = count + 1
     else:
         atoms_idx = list(range(len(system.atoms)))
+    system.atoms = atom_subset
     return (
         "\n".join(
             [
                 "%d %d %f %f %f" % (a.index + 1, system.i2t(a.label), a.x, a.y, a.z)
                 for i, a in enumerate(system.atoms)
-                if i in atoms_idx
             ]
         ),
         len(atoms_idx),
     )
 
 
-def write_input_data(system, ff_file, xyz_low, xyz_high, job_str, overlap):
+def write_input_data(system, ff_file, xyz_low, xyz_high, ff_elems, job_str, overlap):
     """
     Generate input data for a LAMMPS simulation by writing atom, atom type, and boundary information to a data file.
 
@@ -70,7 +77,7 @@ def write_input_data(system, ff_file, xyz_low, xyz_high, job_str, overlap):
     f = open(data_file, "w")
 
     f.write("LAMMPS Description\n\n%d atoms\n" % num_atoms)
-    f.write("%d atom types\n" % (len(system.atom_labels),))
+    f.write("%d atom types\n" % len(ff_elems.split(" ")))
 
     f.write("%3.5f %3.5f xlo xhi\n" % (xyz_low[0], xyz_high[0]))
     f.write("%3.5f %3.5f ylo yhi\n" % (xyz_low[1], xyz_high[1]))
@@ -104,6 +111,7 @@ def job(job_config, struc, box_size, atom_dix):
     """
     job_name = job_config["job_name"]
     job_str = job_config["job_str"]
+    job_str = job_str.replace("$FF_ELEM$", job_config["elems"])
     for atom in struc:
         atom.label = atom_dix[atom.element]
 
@@ -113,9 +121,10 @@ def job(job_config, struc, box_size, atom_dix):
     box.atom_labels = list(atom_dix.values())
     lmp_inp_str = write_input_data(
         box,
-        ["lib.niticr.meam", "niticr.meam"],
+        job_config["ff"],
         box_size[0],
         box_size[1],
+        job_config["elems"],
         job_str,
         job_config["overlap"],
     )
@@ -124,10 +133,10 @@ def job(job_config, struc, box_size, atom_dix):
         lmp_inp_str,
         queue="defq",
         allocation="pclancy3",
-        walltime="12:0:0",
-        nprocs=6,
+        walltime="2:0:0",
+        nprocs=2,
         pair_coeffs_in_data_file=False,
-        prebash="ml cl-lammps",
+        prebash=PREBASH,
     )
 
     return jobj
@@ -166,6 +175,10 @@ def run(task, name):
                 config["job_str"] = yaml.safe_load(open(inputs_path / "rel.yaml", "r"))[
                     "job_str"
                 ]
+            elif config["sim"] == "single":
+                config["job_str"] = yaml.safe_load(
+                    open(inputs_path / "single.yaml", "r")
+                )["job_str"]
             job(
                 config,
                 struc,

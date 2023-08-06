@@ -1,5 +1,8 @@
 job_name: apart_rel_metal
 sim: md
+elems: Ni Ti Cr
 xyz: apart.xyz
 system_bounds: [[-48.4273, -8.51501, -6.02102], [13.5150, 8.51501, 6.02102]]
 overlap: true
+ff: ["lib.niticr.meam", "niticr.meam"]
+output: ["Step", "TotEng", "PotEng", "Temp"]

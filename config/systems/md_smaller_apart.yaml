@@ -1,5 +1,8 @@
 job_name: smaller_apart_rel
 sim: md
+elems: Ni Ti Cr
 xyz: criniti_apart.xyz
 system_bounds: [[-16.4863, 0.0, 0.0], [13.85681, 14.8326, 10.4882]]
 overlap: false
+ff: ["lib.niticr.meam", "niticr.meam"]
+output: ["Step", "TotEng", "PotEng", "Temp"]

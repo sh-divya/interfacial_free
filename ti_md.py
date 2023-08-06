@@ -137,7 +137,7 @@ def run(task, name):
                 config["job_str"] = yaml.safe_load(
                     open(inputs_path / "lmda.yaml", "r")
                 )["job_str"]
-                lambda_jobs(config, struc, config["system_bounds"], atom_bounds)
+                lambda_jobs(config, struc, config["system_bounds"], atom_dix)
     else:
         return
 
