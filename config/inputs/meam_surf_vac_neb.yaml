@@ -1,0 +1,49 @@
+job_str: |-
+  units metal
+  boundary p p p
+  atom_style atomic
+
+  read_data $DATA$
+
+  pair_style meam
+  pair_coeff * * $FILE1$ Ni Ti Cr $FILE2$ Ni Ti Cr
+
+  neighbor 2.0 bin
+  neigh_modify delay 10 check yes
+
+  group niti type 1 2
+  group cr type 3
+
+
+  dump 1 all xyz 2000 $NAME$.xyz
+  dump_modify 1 element Ni Ti Cr
+  dump_modify 1 sort id
+
+  dump 2 all custom 2000 $NAME$_wbox.dump id type x y z
+  dump_modify 2 element Ni Ti Cr
+
+  thermo 10
+  thermo_style custom pe temp
+
+  min_style cg 
+  minimize 1e-25 1e-25 5000 10000
+
+  timestep 0.001
+  velocity all set 0.0 0.0 0.0
+  # velocity all create 300 12345 mom yes rot no
+
+  fix 1 all nve
+  run 2000
+
+  thermo_style custom step pe temp
+
+  fix 2 all nvt temp 300.0 300.0 0.1 # 0.0 0.0 1.0
+  # fix	2 all temp/rescale 10 300.0 300.0 10.0 1.0
+  compute 1 all stress/atom NULL pair
+  fix 3 all recenter INIT INIT INIT units box
+
+  dump 3 all custom 2000 $NAME$_stress.dump id type x y z c_1[*]
+  dump_modify 3 element Ni Ti Cr
+  dump_modify 3 sort id
+
+  run 200000

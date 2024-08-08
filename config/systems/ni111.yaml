@@ -1,8 +1,0 @@
-job_name: ni111_surface_rel
-sim: single
-elems: Ni Ti Al
-xyz: ni111.xyz
-system_bounds: [[-15.0, -7.236406, -5.013528], [6.640293, 7.236405, 5.013528]]
-overlap: true
-ff: ["lib_niti.meam", "niti.meam"]
-output: ["Step", "TotEng", "PotEng", "Temp"]

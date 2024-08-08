@@ -1,0 +1,7 @@
+dx: 0.001
+spring: 0.1
+neigh: neigh
+nsteps: 100
+ci_steps: 200
+nframes: 5
+walltime: 00:30:00

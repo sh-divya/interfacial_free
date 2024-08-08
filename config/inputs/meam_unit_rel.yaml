@@ -1,0 +1,26 @@
+job_str: |-
+  units metal
+  boundary p p p
+  atom_style atomic
+
+  read_data $DATA$
+
+  pair_style meam
+  pair_coeff * * $FILE1$ $FF_ELEM$ $FILE2$ $ELEM$
+
+  neighbor 2.0 bin
+  neigh_modify delay 10 check yes
+
+  dump 1 all xyz 2000 $NAME$.xyz
+  dump_modify 1 element $ELEM$
+  dump_modify 1 sort id
+
+  dump 2 all custom 2000 $NAME$_wbox.dump id type x y z
+  dump_modify 2 element $ELEM$
+
+  thermo 10
+  thermo_style custom $THERMO$
+
+  fix 1 all box/relax aniso 0.0 vmax 0.001
+  min_style cg 
+  minimize 1e-25 1e-25 5000 10000

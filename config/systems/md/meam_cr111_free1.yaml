@@ -1,0 +1,13 @@
+job_name: cr111_free_2001
+sim: meam_bulk_rel
+elems: Cr
+xyz: cr111_6-6-3.xyz
+system_bounds: [[0, 0, 0], [42.2567, 24.3969, 29.94]]
+overlap: false
+ff: ["lib_cr2001.meam", "cr2001.meam"]
+output: ["step", "etotal", "cella", "cellb", "cellc", "cellalpha", "cellbeta", "cellgamma"]
+prebash: "ml cl-lammps\nsource /data/apps/go.sh\n"
+resources:
+  queue: "shared"
+  walltime: "24:0:0"
+  cores: 8

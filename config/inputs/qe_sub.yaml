@@ -1,0 +1,9 @@
+slurm_str: |-
+  date
+  source /data/apps/go.sh
+  module load intel
+  module load intel-mpi
+  module load intel-mkl
+  module load qe/7.2
+  mpirun -np $CORES$ pw.x -npool $NK$ < $INPUT$ > $OUTPUT$
+  date

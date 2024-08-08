@@ -26,7 +26,7 @@ def ti_jobs(job_config, struc, box_size, atom_dix):
     Returns:
         lammps.job: A LAMMPS job object for last TI frame.
     """
-    job_name_base = job_config["name"]
+    job_name_base = job_config["job_name"]
     job_str = job_config["job_str"]
     overlap = job_config["overlap"]
     for f, frame in enumerate(struc):
@@ -40,9 +40,10 @@ def ti_jobs(job_config, struc, box_size, atom_dix):
         box.atom_labels = list(atom_dix.values())
         lmp_inp_str = write_input_data(
             box,
-            ["lib.niticr.meam", "niticr.meam"],
+            job_config["ff"], # <- this
             box_size[0],
             box_size[1],
+            job_config["elems"],
             job_str,
             overlap,
         )
@@ -85,9 +86,10 @@ def lambda_jobs(job_config, struc, box_size, atom_dix):
     box.atom_labels = list(atom_dix.values())
     lmp_inp_str = write_input_data(
         box,
-        ["lib.niticr.meam", "niticr.meam"],
+        job_config["ff"],
         box_size[0],
         box_size[1],
+        job_config["elems"],
         job_str,
         overlap,
     )
@@ -116,7 +118,7 @@ def run(task, name):
     """
     atom_dix = {"Ni": 1, "Ti": 2, "Cr": 3}
 
-    systems_path = config_path / "systems"
+    systems_path = config_path / "systems/md"
     task = systems_path / (task + ".yaml")
 
     inputs_path = config_path / "inputs"

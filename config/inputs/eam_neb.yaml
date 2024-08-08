@@ -1,0 +1,27 @@
+job_str: |-
+  units metal
+  pair_style eam/fs
+  atom_style atomic
+  atom_modify map array
+
+  boundary p p p
+  lattice bcc $LATTICE$ origin 0 0 0 orient x 1 0 0 orient y 0 1 0 orient z 0 0 1
+  region cell block 0 $A$ 0 $B$ 0 $C$ units lattice
+  variable u equal part
+  create_box 1 cell
+  read_data $DATA$ add append
+  group move id $ID$
+  group static subtract all move
+
+  pair_coeff * * $FILE$ $FF_ELEM$
+  neighbor 2.0 bin
+  neigh_modify delay 10 check yes
+
+  dump 1 all xyz 200 image.$u
+  dump_modify 1 element $FF_ELEM$
+
+  timestep $STEP$
+  thermo 1
+  fix 1 all neb $K1$ parallel $DIST$
+  min_style quickmin
+  neb 1e-25 0.3 $NSTEP$ $NCI$ 1 each $IMAGE$.$u

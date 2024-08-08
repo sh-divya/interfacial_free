@@ -4,7 +4,6 @@ lammps/
 qe/
 data/
 force_fields/pseudo/
-structs/*
 !structs/smaller_interface.xyz
 !structs/smaller_apart.xyz
 !structs/niti110.xyz
@@ -20,6 +19,7 @@ structs/*
 !structs/interface_rel_metal.xyz
 !structs/Cr_110_128atoms.xyz
 !structs/niti_110_128atoms.xyz
+structs/
 # From https://github.com/github/gitignore/blob/main/Python.gitignore
 
 # Byte-compiled / optimized / DLL files

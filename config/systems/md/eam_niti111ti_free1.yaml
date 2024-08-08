@@ -1,0 +1,13 @@
+job_name: niti111_freeti_eam
+sim: eam_bulk_rel
+elems: Ni Ti
+xyz: niti111_6-6-3ti.xyz
+system_bounds: [[0, 0, 0], [43.6143, 25.1808, 30.42]]
+overlap: false
+ff: ["niti2024.eam.fs"]
+output: ["step", "etotal", "cella", "cellb", "cellc", "cellalpha", "cellbeta", "cellgamma"]
+prebash: "ml cl-lammps\nsource /data/apps/go.sh\n"
+resources:
+  queue: "shared"
+  walltime: "8:0:0"
+  cores: 8

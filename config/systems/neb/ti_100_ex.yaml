@@ -1,0 +1,12 @@
+job_name: ti_555_ex
+sim: neb
+elems: ["Ti"]
+lattice: 3.29194
+system_bounds: 5 15 5
+xyz: ti_555_ex.first.xyz
+overlap: False
+ff: ti2004.eam
+data: ti_555_ex.init.data
+image_base: ti_555_ex.image
+id: ["146", "147"]
+output: []

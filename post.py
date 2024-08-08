@@ -10,41 +10,65 @@ import click
 import yaml
 import os
 import re
+import pandas as pd
 
 BASE_PATH = Path(__file__).parent
 LAMMPS_DIR = BASE_PATH / "lammps"
 STRUCT_DIR = BASE_PATH / "structs"
 CONFIG_PATH = BASE_PATH / "config"
+NEB_DIR = BASE_PATH / "neb"
 
 
 def read_one_dir(
     job_name, thermo_format, indices=[0, 1], unit_conversion=None, plot_log=True
 ):
+    thermo_dix = {
+        "step": "Step",
+        "etotal": "TotEng",
+        "ke": "KinEng",
+        "pe": "PotEng",
+        "temp": "Temp",
+        "press": "Press",
+        "c_mempe": "c_mempe",
+        "lx": "Lx",
+        "ly": "Ly",
+        "lz": "Lz",
+        "cella": "Cella",
+        "cellb": "Cellb",
+        "cellc": "Cellc",
+        "cellalpha": "CellAlpha",
+        "cellbeta": "CellBeta",
+        "cellgamma": "CellGamma"
+    }
+
+    thermo_format = [thermo_dix[i] for i in thermo_format]
     job_dir = osp.join(LAMMPS_DIR, job_name)
     if plot_log:
         all_out_fptr = [f for f in os.listdir(job_dir) if f.endswith(".log")]
     else:
         all_out_fptr = [f for f in os.listdir(job_dir) if re.match(r".+\.o\d+", f)]
 
-    data_list = {idx: [] for idx in indices}
+    # data_list = []
 
-    for f, fptr in enumerate(all_out_fptr):
-        with open(osp.join(job_dir, fptr)) as fobj:
-            column_indices = [thermo_format.index(idx) for idx in indices]
-            step_and_vals = [
-                [float(row[i]) for i in column_indices]
-                for row in read_log_or_out(fobj, thermo_format)
-            ]
+    # for f, fptr in enumerate(all_out_fptr):
+    fptr = all_out_fptr[0]
+    # print(fptr)
+    with open(osp.join(job_dir, fptr)) as fobj:
+        column_indices = indices[:]
+        step_and_vals = [
+            [float(row[i]) for i in column_indices]
+            for row in read_log_or_out(fobj, thermo_format)
+        ]
+    step_and_vals = list(zip(*step_and_vals))
+    steps = step_and_vals[0]
+    yvals = step_and_vals[1:]
 
-        step, yvals = zip(*step_and_vals)
+    if unit_conversion is not None and len(indices) == 2:
+        yvals = yvals[0]
+        yvals = [unit_conversion(yval) for yval in yvals]
 
-        if unit_conversion is not None:
-            yvals = [[unit_conversion(val) for val in yval] for yval in yvals]
-
-        for idx, yval in zip(indices, zip(*yvals)):
-            data_list[idx].append(yval)
-
-    return data_list
+    # data_list = yvals[:]
+    return steps, yvals
 
 
 def read_ti(job_base, thermo_format, nframes):
@@ -53,7 +77,7 @@ def read_ti(job_base, thermo_format, nframes):
 
     for i in range(nframes):
         dir_name = job_base + f"_{i}"
-        data_list = read_one_dir(dir_name, thermo_format, indices=[2, 5])
+        _, data_list = read_one_dir(dir_name, thermo_format, indices=[2, 5])
         f1x, f2x = data_list[2], data_list[5]
         m_f1x, m_f2x = np.mean(f1x[-10000:]), np.mean(f2x[-10000:])
         s_f1x, s_f2x = np.std(f1x[-10000:]), np.std(f2x[-10000:])
@@ -70,8 +94,100 @@ def read_ti(job_base, thermo_format, nframes):
     return pmf, errors
 
 
-def process(task):
-    systems_path = CONFIG_PATH / "systems"
+def read_single_neb():
+    pass
+
+
+def neb_sweep(config, filter=True):
+    base_cols = [
+        "Step",
+        "MaxReplicaForce",
+        "MaxAtomForce",
+        "GradV0",
+        "GradV1",
+        "GradVc",
+        "EBF",
+        "EBR",
+        "RDT",
+    ]
+
+    sweep = yaml.safe_load(open(str(CONFIG_PATH / "neb" / "sweep.yaml")))
+    frames = sweep["nframes"]
+
+    job_base = config["job_name"] + "_sweep"
+    mech = config["job_name"]
+
+    plt.figure()
+    plt.title(mech)
+    ecols = [f"E{i}" for i in range(frames)]
+    rcols = [f"R{i}" for i in range(frames)]
+    cols = ecols + rcols
+    master_df = pd.DataFrame(columns=cols)
+    for i, d in enumerate(os.listdir(str(NEB_DIR))):
+        sim_out = []
+        if d.startswith(job_base):
+            job_dir = NEB_DIR / d
+            log_file = job_dir / "log.lammps"
+            for line in open(str(log_file)).readlines()[3:]:
+                row = line.split()
+                if row[0] == "Climbing" or row[0] == "Step":
+                    continue
+                data = [float(r) for r in row]
+                sim_out.append(data)
+            df = pd.DataFrame(np.array(sim_out))
+
+            extra_cols = [
+                "RD" + str(f // 2 + 1) if f % 2 == 0 else "PE" + str(f // 2 + 1)
+                for f in range(2 * frames)
+            ]
+
+            all_cols = base_cols + extra_cols
+
+            df.columns = all_cols
+
+            coords = [extra_cols[i] for i in range(len(extra_cols)) if i % 2 == 0]
+            energies = [extra_cols[i] for i in range(len(extra_cols)) if i % 2 != 0]
+            rel_energies = (df[energies].iloc[-1] - df["PE1"].iloc[-1]).to_numpy(
+                dtype=float
+            )
+            if filter:
+                suff = "filter"
+                if np.amin(rel_energies) < 0.0:
+                    continue
+                elif rel_energies[-1] > rel_energies[0] + 0.05:
+                    continue
+                elif np.amax(rel_energies) >= 2.0:
+                    continue
+            else:
+                suff = "all"
+            rc = df[coords].iloc[-1].to_numpy(dtype=float)
+            master_df.loc[i] = list(rel_energies) + list(rc)
+            plt.plot(rc, rel_energies)
+    plt.ylabel("Energy eV")
+    plt.xlabel("Reaction Coordinate")
+    plt.savefig(str(BASE_PATH / "plots" / f"{config['job_name']}_{suff}.png"))
+
+    y = master_df[ecols].mean()
+    x = master_df[rcols].mean()
+    errs = master_df[ecols].std()
+    print(y.tolist())
+    print(x.tolist())
+    print(errs.to_list())
+
+    plt.figure()
+    plt.title(mech)
+    plt.ylabel("Energy eV")
+    plt.xlabel("Reaction Coordinate")
+    plt.ylim([0.0, 1.5])
+    plt.scatter(x, y)
+    plt.errorbar(x, y, yerr=errs, capsize=3.5)
+    plt.savefig(str(BASE_PATH / "plots" / f"{config['job_name']}_{suff}_avg.png"))
+
+    return master_df.mean(), master_df.std()
+
+
+def process(task, tech="md"):
+    systems_path = CONFIG_PATH / "systems" / tech
     simulation = systems_path / (task + ".yaml")
     all_sys = list(systems_path.iterdir())
     if simulation in all_sys:
@@ -81,34 +197,48 @@ def process(task):
             sim = config["sim"]
             thermo_format = config["output"]
 
-            if sim == "md":
-                data_list = read_one_dir(task, thermo_format, indices=[0, 1])
+            if tech == "md" or tech == "single":
+                _, data_list = read_one_dir(
+                    config["job_name"],
+                    thermo_format,
+                    indices=[0, 6, 7, 8],
+                    # unit_conversion=lambda x: convert_energy("eV", "kJ", x),
+                )
                 results = data_list
                 errors = []
-            elif sim == "ti":
-                results, errors = read_ti(task, thermo_format, nframes=23)
-            elif sim == "smd":
-                data_list = read_one_dir(task, thermo_format, indices=[2, 3])
+            elif tech == "ti":
+                results, errors = read_ti(config["job_name"], thermo_format, nframes=23)
+            elif tech == "smd":
+                _, data_list = read_one_dir(
+                    config["job_name"], thermo_format, indices=[2, 3]
+                )
                 results = data_list
                 errors = []
+            elif tech == "neb":
+                neb_sweep(config, False)
+                return
             else:
-                raise ValueError(f"Unsupported simulation type: {sim}")
+                raise ValueError(f"Unsupported simulation type: {tech}")
 
         return results, errors
 
 
 if __name__ == "__main__":
-    task = "apart_rel_metal"
+    task = "eam_agni111_interface"
     results, errors = process(task)
-    print("Mean", np.mean(results[-10000:]))
-    print("Error", np.std(results[-10000:]))
-
-    # 4.336, 0.04336, 0.004336, 4.336e-9
-    # 1e-5 x 3, 1e-7
-
-    # legends = [
-    #     "k=4.336;v=1e-5",
-    #     "k=0.04336;v=1e-5",
-    #     "k=0.004336;v=1e-5",
-    #     "k=4.336e-9;v=1e-9"
-    # ]
+    a, b, c = results
+    a = a[-100000:]
+    b = b[-100000:]
+    c = c[-100000:]
+    print(np.mean(a), np.mean(b), np.mean(c))
+    print(np.std(a), np.std(b), np.std(c))
+    # print(results[0])
+    # fig, ax = plt.subplots(1, 1)
+    # ax.plot(results)
+    # ax.set_xlabel("Step")
+    # ax.set_ylabel("Potential Energy eV")
+    # fig.savefig(BASE_PATH / f"plots/{task}.png")
+    # print("Mean", np.mean(results[-1000:]))
+    # print("Error", np.std(results[-1000:]))
+    # task = "ti_100_ex"
+    # process(task, "neb")

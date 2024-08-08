@@ -1,0 +1,13 @@
+job_name: niti_bulk_2019
+sim: meam_bulk_rel
+elems: Ni Ti
+xyz: bulk_niti_10-10-5.xyz
+system_bounds: [[0, 0, 0], [29.6758, 29.6758, 14.8379]]
+overlap: false
+ff: ["lib_niti2019.meam", "niti2019.meam"]
+output: ["step", "etotal", "cella", "cellb", "cellc", "cellalpha", "cellbeta", "cellgamma"]
+prebash: "ml cl-lammps\nsource /data/apps/go.sh\n"
+resources:
+  queue: "express"
+  walltime: "6:0:0"
+  cores: 4

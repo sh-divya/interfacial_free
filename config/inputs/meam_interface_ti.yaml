@@ -1,0 +1,29 @@
+job_str: |-
+  units metal
+  boundary p p p
+  atom_style atomic
+
+  read_data $DATA$
+
+  pair_style meam
+  pair_coeff * * $FILE1$ $FF_ELEM$ $FILE2$ $ELEM$
+
+  neighbor 2.0 bin
+  neigh_modify delay 10 check yes
+
+  group niti type 1 2
+  group cr type 3
+
+  dump 1 all xyz 10000 $NAME$.xyz
+  dump_modify 1 element $ELEM$
+
+  fix 1 niti setforce 0.0 0.0 0.0
+  fix 2 cr setforce 0.0 0.0 0.0
+
+  thermo 50
+  thermo_style custom step etotal pe temp f_1[1] f_1[2] f_1[3] f_2[1] f_2[2] f_2[3]
+
+  timestep 0.001
+
+  fix eq all nve
+  run 2000000

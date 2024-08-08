@@ -1,0 +1,38 @@
+job_str: |-
+  units metal
+  boundary p p p
+  atom_style atomic
+
+  read_data $DATA$
+
+  pair_style eam/fs
+  pair_coeff * * $FILE$ $ELEM$
+
+  neighbor 2.0 bin
+  neigh_modify delay 10 check yes
+
+  group ni type 2
+  group ag type 1
+
+  dump 1 all xyz 2000 $NAME$.xyz
+  dump_modify 1 element $ELEM$
+  dump_modify 1 sort id
+
+  thermo 10
+  thermo_style custom $THERMO$
+
+  compute allStress all stress/atom NULL
+
+  dump 2 all custom 2000 $NAME$_stress.dump id type x y z c_allStress[*]
+  dump_modify 2 element $ELEM$
+  dump_modify 2 sort id
+
+  timestep 0.001
+  velocity all set 0.0 0.0 0.0
+
+  fix strain all deform 10 x scale 1.005 y scale 1.0 z volume
+  fix eq all nvt temp 823.0 823.0 0.1
+  run 3000000
+
+  unfix strain
+  run 3000000

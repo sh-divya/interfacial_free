@@ -1,0 +1,13 @@
+job_name: niti_unit_eam
+sim: eam_unit_rel
+elems: Ni Ti
+xyz: niti.xyz
+system_bounds: [[0, 0, 0], [3.015, 3.015, 3.015]]
+overlap: true
+ff: ["niti2024.eam.fs"]
+output: ["step", "etotal", "cella", "cellb", "cellc", "cellalpha", "cellbeta", "cellgamma"]
+prebash: "ml cl-lammps\nsource /data/apps/go.sh\n"
+resources:
+  queue: "express"
+  walltime: "2:0:0"
+  cores: 1

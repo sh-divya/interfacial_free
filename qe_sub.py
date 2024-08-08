@@ -1,20 +1,19 @@
 from squid import files, structures
 from squid.jobs import slurm
 
-from config.qe_sub import slurm_str
-
-# from config.bulk_rel import job_str
-
 import os
 from pathlib import Path
 import click
+import yaml
 
+BASE_PATH = Path(__file__).parent.resolve()
+xyz_path = BASE_PATH / "structs"
+data_path = BASE_PATH / "data"
+ff_path = BASE_PATH / "force_fields/pseudo"
+config_path = BASE_PATH / "config"
 
-base_path = Path("/scratch16/pclancy3/divya/interfacial_free/qe")
-xyz_path = Path("/scratch16/pclancy3/divya/interfacial_free/structs")
-data_path = Path("/scratch16/pclancy3/divya/interfacial_free/data")
-ff_path = Path("/scratch16/pclancy3/divya/interfacial_free/force_fields/pseudo")
-
+DELTA = 0.25
+DELTA = 0
 
 MASSES = {1: 58.6934, 2: 47.867, 3: 51.9961}
 TYPES = ["Ni", "Ti", "Cr"]
@@ -31,13 +30,9 @@ def dump_atoms_data(system, boundary="xyz"):
     elems = set([a.label for a in system.atoms])
     if boundary is not None:
         for i, a in enumerate(system.atoms):
-            if a.x < max_x:
-                if a.x > min_x:
-                    if a.y < max_y:
-                        if a.y > min_y:
-                            if a.z < max_z:
-                                if a.z > min_z:
-                                    atoms_idx.append(i)
+            if a.y < max_y - DELTA:
+                if a.z < max_z - DELTA:
+                    atoms_idx.append(i)
     else:
         atoms_idx = list(range(len(system.atoms)))
     atoms_data = []
@@ -52,10 +47,10 @@ def dump_atoms_data(system, boundary="xyz"):
     )
 
 
-def write_input_script(system, job_str, abc, seconds=259000):
+def write_input_script(system, job_str, abc, seconds=258400):
     atoms_data, num_atoms, num_elems, box_dims = dump_atoms_data(system, None)
     inp_str = job_str.replace("$NAME$", system.name)
-    inp_str = job_str.replace("$TIME$", str(seconds))
+    inp_str = inp_str.replace("$TIME$", str(seconds))
     inp_str = inp_str.replace("$NUM$", str(num_atoms))
     inp_str = inp_str.replace("$TYPE$", str(len(num_elems)))
     inp_str = inp_str.replace("$POSITIONS$", atoms_data)
@@ -75,7 +70,7 @@ def write_input_script(system, job_str, abc, seconds=259000):
 
 
 def create_job_dir(job_name, inp_str, clean=False):
-    inp_dir = base_path / job_name
+    inp_dir = BASE_PATH / "qe" / job_name
     try:
         inp_dir.mkdir(parents=True, exist_ok=not clean)
     except FileExistsError:
@@ -88,7 +83,7 @@ def create_job_dir(job_name, inp_str, clean=False):
     return inp_dir, inp_path
 
 
-def job(job_name, struc, atom_dix, abc):
+def job(sim, job_name, struc, atom_dix, abc, kp, start):
     for atom in struc:
         atom.label = atom_dix[atom.element]
 
@@ -96,12 +91,13 @@ def job(job_name, struc, atom_dix, abc):
     box = structures.System(job_name)
     box.add(tmp)
     box.atom_labels = list(atom_dix.values())
-    if job_name in ["niti110", "cr110", "niti110_stopped", "cr110_stopped"]:
-        from config.inputs.surf_rel import job_str
-    elif job_name in ["niti", "cr"]:
-        from config.inputs.bulk_rel import job_str
-    elif job_name in ["crniti_interface", "interface_stopped"]:
-        from config.inputs.interface import job_str
+    inputs_path = config_path / "inputs"
+    slurm_str = yaml.safe_load(open(inputs_path / "qe_sub.yaml", "r"))["slurm_str"]
+    qe_inp_temp = inputs_path / (sim + ".yaml")
+    job_str = yaml.safe_load(open(qe_inp_temp, "r"))["job_str"]
+
+    job_str = job_str.replace("$KPOINTS$", kp)
+    job_str = job_str.replace("$START$", f"'{start}'")
     qe_inp_str = write_input_script(box, job_str, abc)
     job_dir, job_inp = create_job_dir(job_name, qe_inp_str, clean=True)
 
@@ -113,69 +109,52 @@ def job(job_name, struc, atom_dix, abc):
 
 
 @click.command()
-@click.option("--system", default="0")
-@click.option("--ncores", default="64")
-@click.option("--kp", default="8")
-@click.option("--walltime", default="72:00:00")
-@click.option("--abc", default=None)
-def sub(system, ncores, kp, walltime, abc):
-    xyz_list = [
-        "niti110.xyz",
-        "cr110.xyz",
-        "crniti_interface.xyz",
-        "niti.xyz",
-        "cr.xyz",
-        "niti110_stopped.xyz",
-        "cr110_stopped.xyz",
-        "interface_stopped.xyz",
-    ]
-    for s in system:
-        xyz = xyz_list[int(s)]
-        struc = files.read_xyz(str(xyz_path / xyz))
-        job_name = xyz.split(".")[0]
-        atom_dix = {
-            "0": {"Ni": 1, "Ti": 2},
-            "1": {"Cr": 3},
-            "2": {"Cr": 3, "Ni": 1, "Ti": 2},
-            "3": {"Ni": 1, "Ti": 2},
-            "4": {"Cr": 3},
-            "5": {"Ni": 1, "Ti": 2},
-            "6": {"Cr": 3},
-            "7": {"Cr": 3, "Ni": 1, "Ti": 2},
-        }
-        job_dir, slurm_inp = job(job_name, struc, atom_dix[s], abc)
-        os.chdir(job_dir)
-        ncores = int(ncores)
-        nodes = (ncores // 24) + 1
-        slurm_inp = slurm_inp.replace("$CORES$", str(ncores))
-        slurm_inp = slurm_inp.replace("$NK$", kp)
-        slurm.submit_job(
-            job_name,
-            slurm_inp,
-            queue="defq",
-            walltime=walltime,
-            ntasks=ncores,
-            allocation="pclancy3",
-        )
-        os.chdir(base_path.parent)
+@click.option("--task", default="cr_unit_vc")
+@click.option("--name", default=None)
+@click.option("--start", default="from_scratch")
+def sub(task, name, start):
+    systems_path = config_path / "systems/qe"
+    task = systems_path / (task + ".yaml")
+
+    all_sys = list(systems_path.iterdir())
+    if task in all_sys:
+        yaml_file = task
+        with open(yaml_file, "r") as y:
+            config = yaml.safe_load(y)
+            if name is not None:
+                config["job_name"] = name
+            struc = files.read_xyz(str(xyz_path / config["xyz"]))
+            atom_dix = config["atoms"]
+            abc = config["abc"]
+            kp = config["kpoints"]
+            job_dir, slurm_inp = job(
+                config["sim"], config["job_name"], struc, atom_dix, abc, kp, start
+            )
+            kp_mult = 1
+            for k in kp.split(" "):
+                kp_mult = kp_mult * int(k)
+            os.chdir(job_dir)
+            ncores = config["cores"]
+            if ncores >= kp_mult:
+                kp_mult = ncores // kp_mult
+            else:
+                kp_mult = kp_mult // ncores
+            nodes = (ncores // 48) + 1
+            slurm_inp = slurm_inp.replace("$CORES$", str(ncores))
+            slurm_inp = slurm_inp.replace("$NK$", str(kp_mult))
+            print(f"Submitting...{config['job_name']}")
+            # print(BASE_PATH)
+            # print(slurm_inp)
+            slurm.submit_job(
+                config["job_name"],
+                slurm_inp,
+                queue="defq",
+                walltime=config["walltime"],
+                ntasks=ncores,
+                allocation="pclancy3",
+            )
+            os.chdir(BASE_PATH)
 
 
 if __name__ == "__main__":
     sub()
-    # niti 110 vcrel: "6.35681 + 15 14.8326 10.4882"
-    # cr 110 vc-rel: "6.0411 + 15, 14.0959, 9.9673"
-    # niti unit vc-rel: "3.01051 3.01051 3.01051"
-    # cr unit vc-rel:  "2.96890 2.96890 2.96890"
-    # interface vc-rel: "15.3431 + 15, 14.8326, 10.4882"
-
-    # cr -   20.706259434  -0.006745908  -0.017097752
-    # -0.004443549  14.115987471  -0.010719601
-    # -0.015684556  -0.006835575  11.068669984
-
-    # niti -   20.063879787   0.000029337   0.006241442
-    # 0.000019306  14.751828299   0.000003000
-    # 0.001221396   0.000002150  10.929892144
-
-    # interface -   30.632191943   0.015812917  -0.012826124
-    #               0.007728923  15.292166742  -0.005533737
-    #              -0.004415996  -0.003905910  10.820216095
