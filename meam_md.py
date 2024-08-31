@@ -150,9 +150,9 @@ def job(job_config, struc, box_size):
     jobj = lammps.job(
         job_name,
         inp_str,
-        queue=resources["queue"],
+        # queue=resources["queue"],
         allocation="pclancy3",
-        walltime=resources["walltime"],
+        # walltime=resources["walltime"],
         nprocs=resources["cores"],
         pair_coeffs_in_data_file=False,
         prebash=job_config["prebash"],
