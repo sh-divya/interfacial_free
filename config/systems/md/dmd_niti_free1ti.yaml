@@ -1,13 +1,13 @@
-job_name: niti_bulk_deepmd_compress
+job_name: niti_free_slab_ti_dmd
 sim: dmd_bulk_rel
 elems: Ni Ti
-xyz: bulk_niti_10-10-5.xyz
-system_bounds: [[0, 0, 0], [29.6758, 29.6758, 14.8379]]
+xyz: bulk_niti_10-10-5ti.xyz
+system_bounds: [[0, 0, 0], [29.6758, 29.6758, 29.8379]]
 overlap: false
 ff: ["NiTi_graph_compress.pb"]
 output: ["step", "etotal", "cella", "cellb", "cellc", "cellalpha", "cellbeta", "cellgamma"]
 prebash: "source /data/apps/go.sh\nsource /home/dsharm23/.bashrc\nload_dplmp\n"
 resources:
-  queue: "shared"
-  walltime: "36:0:0"
+  queue: "parallel"
+  walltime: "48:0:0"
   cores: 24

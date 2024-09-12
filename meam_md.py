@@ -10,7 +10,7 @@ data_path = BASE_PATH / "data"
 ff_path = BASE_PATH / "force_fields"
 config_path = BASE_PATH / "config"
 
-# PREBASH = "ml cl-lammps\nsource /data/apps/go.sh\n"
+PREBASH = "source /data/apps/go.sh\nml cl-lammps\n"
 
 DELTA = 0.5
 
@@ -145,14 +145,12 @@ def job(job_config, struc, box_size):
 
     print("Submitting...")
     resources = job_config["resources"]
-    # print(inp_str)
-    # raise Exception
     jobj = lammps.job(
         job_name,
         inp_str,
-        # queue=resources["queue"],
+        queue=resources["queue"],
         allocation="pclancy3",
-        # walltime=resources["walltime"],
+        walltime=resources["walltime"],
         nprocs=resources["cores"],
         pair_coeffs_in_data_file=False,
         prebash=job_config["prebash"],
@@ -204,7 +202,8 @@ def run_base(task="md_apart_rel", name=None):
 
 
 if __name__ == "__main__":
-    run()
+    # run()
+    tasks = ["meam_crniti_110_smd"]
     # tasks = [
     #     'meam_cr_bulk',
     #     'meam_cr_free1',
@@ -216,18 +215,16 @@ if __name__ == "__main__":
     #     'meam_cr111_free1',
     # ]
     # tasks = [
-    #     'eam_niti_bulk',
-    #     'eam_niti_free1ni',
-    #     'eam_niti_free1ti',
-    #     'eam_niti_free2ti',
-    #     'eam_niti_free2ni',
-    #     'eam_niti_unit',
-    #     'eam_niti110_free2',
-    #     'eam_niti110_free1',
-    #     'eam_niti111ni_free2',
-    #     'eam_niti111ti_free2',
-    #     'eam_niti111ni_free1',
-    #     'eam_niti111ti_free1'
+    #     'dmd_niti_free1ni',
+    #     'dmd_niti_free1ti',
+    #     'dmd_niti_free2ti',
+    #     'dmd_niti_free2ni',
+    #     'dmd_niti110_free2',
+    #     'dmd_niti110_free1',
+    #     'dmd_niti111ni_free2',
+    #     'dmd_niti111ti_free2',
+    #     'dmd_niti111ni_free1',
+    #     'dmd_niti111ti_free1'
     # ]
-    # for t in tasks:
-    #     run_base(t)
+    for t in tasks:
+        run_base(t)

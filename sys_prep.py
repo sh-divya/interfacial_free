@@ -140,7 +140,7 @@ if __name__ == "__main__":
     # box_info("Cr_110_128atoms.xyz")
     # box_info("ni111.xyz")
     # combine("agni111_v2.xyz", "ag111_555.xyz", "ni111_666.xyz", [0, 0, 39])
-    print(box_info("agni111_v2.xyz"))
+    print(box_info("crniti_110_10-10-5_apart.xyz"))
     # combine("apart_new.xyz", "cr110_9rel.xyz", "niti110_9rel.xyz", [20, 0, 0])
     # combine("interface_new.xyz", "Cr_110_9layers.xyz", "niti_110_9layers.xyz", [2, 0, 0])
     # combine("interface0_scf.xyz", "cr110_qe_rel.xyz", "niti110_qe_rel.xyz", [8.26, 2, 0])

@@ -6,8 +6,8 @@ system_bounds: [[0, 0, 0], [3.015, 3.015, 3.015]]
 overlap: true
 ff: ["NiTi_graph_v1.pb"]
 output: ["step", "etotal", "cella", "cellb", "cellc", "cellalpha", "cellbeta", "cellgamma"]
-prebash: "conda activate dmd\nmodule load deepmd\nmodule load lammps dpmd\n"
+prebash: "source /data/apps/go.sh\nsource /home/dsharm23/.bashrc\nload_dplmp\n"
 resources:
-  # queue: "
-  # walltime: "2:0:0"
+  queue: "express"
+  walltime: "2:0:0"
   cores: 1

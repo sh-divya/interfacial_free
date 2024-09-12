@@ -1,8 +1,10 @@
 from squid import files, lammps, structures
-from meam_md import dump_atoms_data, write_input_data
+# from meam_md import dump_atoms_data, write_input_data
+from meam_md import job
+from sys_prep import box_info
 
 from pathlib import Path
-import os.path as osp
+from copy import deepcopy
 import click
 import yaml
 
@@ -13,7 +15,7 @@ ff_path = BASE_PATH / "force_fields"
 config_path = BASE_PATH / "config"
 
 
-def ti_jobs(job_config, struc, box_size, atom_dix):
+def ti_jobs(job_config, struc):
     """
     Execute Thermodynamics Integration (TI) jobs using LAMMPS.
 
@@ -31,37 +33,16 @@ def ti_jobs(job_config, struc, box_size, atom_dix):
     overlap = job_config["overlap"]
     for f, frame in enumerate(struc):
         job_name = job_name_base + "_" + str(f)
-        for atom in frame:
-            atom.label = atom_dix[atom.element]
-
-        tmp = structures.Molecule(frame)
-        box = structures.System(job_name)
-        box.add(tmp)
-        box.atom_labels = list(atom_dix.values())
-        lmp_inp_str = write_input_data(
-            box,
-            job_config["ff"], # <- this
-            box_size[0],
-            box_size[1],
-            job_config["elems"],
-            job_str,
-            overlap,
-        )
-
-        jobj = lammps.job(
-            job_name,
-            lmp_inp_str,
-            queue="defq",
-            allocation="pclancy3",
-            walltime="12:0:0",
-            nprocs=6,
-            pair_coeffs_in_data_file=False,
-        )
-
-    return jobj
+        iconfig = deepcopy(job_config)
+        iconfig["job_name"] = job_name
+        # atom.label = atom_dix[atom.element]
+        _, _, lz = box_info(frame)
+        lz = lz + 10
+        iconfig["system_bounds"][1][-1] = lz
+        job(iconfig, frame, iconfig["system_bounds"])
 
 
-def lambda_jobs(job_config, struc, box_size, atom_dix):
+def lambda_jobs(job_config, struc):
     """
     Execute Lambda Integration (LMDA) jobs using LAMMPS.
 
@@ -74,6 +55,7 @@ def lambda_jobs(job_config, struc, box_size, atom_dix):
     Returns:
         lammps.job: A LAMMPS job object.
     """
+    raise Exception
     job_name = job_config["job_name"]
     job_str = job_config["job_str"]
     overlap = job_config["overlap"]
@@ -109,6 +91,9 @@ def lambda_jobs(job_config, struc, box_size, atom_dix):
 @click.option("--task", default="ti_apart")
 @click.option("--name", default=None)
 def run(task, name):
+    run_base(task, name)
+
+def run_base(task, name=None):
     """
     Execute a LAMMPS simulation job based on the provided task and name.
 
@@ -130,19 +115,19 @@ def run(task, name):
             if name is not None:
                 config["job_name"] = name
             struc = files.read_xyz(str(xyz_path / config["xyz"]))
-            if config["sim"] == "ti":
-                config["job_str"] = yaml.safe_load(open(inputs_path / "ti.yaml", "r"))[
+            if config["pmf_type"] == "ti":
+                config["job_str"] = yaml.safe_load(open(inputs_path / f"{config['sim']}.yaml", "r"))[
                     "job_str"
                 ]
-                ti_jobs(config, struc, config["system_bounds"], atom_dix)
-            elif config["sim"] == "lmda":
+                ti_jobs(config, struc)
+            elif config["pmf_type"] == "lmda":
                 config["job_str"] = yaml.safe_load(
                     open(inputs_path / "lmda.yaml", "r")
                 )["job_str"]
-                lambda_jobs(config, struc, config["system_bounds"], atom_dix)
+                lambda_jobs(config, struc)
     else:
         return
-
+    
 
 if __name__ == "__main__":
-    run()
+    run_base("meam_crniti_110_ti")
